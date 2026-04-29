@@ -11,4 +11,4 @@ public interface UserService {
     User getUserById(Long id);
     List<User> getAllUsers();
     void deleteUserById(Long id);
-}
+    boolean linkChatId(Long chatId, String email);}
