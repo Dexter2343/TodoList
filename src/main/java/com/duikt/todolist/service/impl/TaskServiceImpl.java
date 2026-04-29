@@ -9,7 +9,6 @@ import com.duikt.todolist.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -20,7 +19,7 @@ public class TaskServiceImpl implements TaskService {
     private final TodoRepository todoRepo;
 
     @Override
-    public Task addTask(Long todoId, String taskName, String description, LocalDateTime deadline, String status) {
+    public Task addTask(Long todoId, String taskName, String description, String status) {
 
         Todo todo = todoRepo.findById(todoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Todo not found with id: " + todoId));
@@ -28,9 +27,8 @@ public class TaskServiceImpl implements TaskService {
         Task task = Task.builder()
                 .title(taskName)
                 .description(description)
-                .deadline(deadline)
                 .status(status)
-                .todo(todo)
+                .todo(todo) // 🔥 FIX (головне)
                 .build();
 
         taskRepo.save(task);
@@ -57,7 +55,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<Task> getTasksByTodoId(Long todoId) {
+    public List<Todo> getTasksByTodoId(Long todoId) {
         return taskRepo.findAllByTodoId(todoId); // 🔥 FIX TYPE + naming
     }
 

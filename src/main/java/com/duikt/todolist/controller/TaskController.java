@@ -26,7 +26,6 @@ public class TaskController {
                 todoId,
                 request.getTitle(),
                 request.getDescription(),
-                request.getDeadline(),
                 request.getStatus()
         );
 
@@ -34,9 +33,9 @@ public class TaskController {
     }
 
     @GetMapping("/todos/{todoId}/tasks")
-    public ResponseEntity<List<Task>> getTasksByTodoId(@PathVariable Long todoId) {
+    public ResponseEntity<List<Todo>> getTasksByTodoId(@PathVariable Long todoId) {
 
-        List<Task> tasks = taskService.getTasksByTodoId(todoId);
+        List<Todo> tasks = taskService.getTasksByTodoId(todoId);
         return ResponseEntity.ok(tasks);
     }
 
