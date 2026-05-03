@@ -1,6 +1,9 @@
 package com.duikt.todolist.telegram;
 
 import com.duikt.todolist.service.UserService;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -11,14 +14,26 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 @Component
+@Getter
+@Setter
+@Data
 public class BotLogic implements LongPollingSingleThreadUpdateConsumer{
 
     private final TelegramClient telegramClient;
     private final UserService userService;
+    private final ShowTaskList showTaskList;
+    private final NotificationSender notificationSender;
 
-    public BotLogic(@Value("${telegram.bot.token}") String token, UserService userService) {
+    private boolean isStarted = false;
+    private boolean emailIsConnected = false;
+
+
+
+    public BotLogic(@Value("${telegram.bot.token}") String token, UserService userService, ShowTaskList showTaskList, NotificationSender notificationSender) {
         this.telegramClient = new OkHttpTelegramClient(token);
         this.userService = userService;
+        this.showTaskList = showTaskList;
+        this.notificationSender = notificationSender;
     }
 
 
@@ -29,19 +44,35 @@ public class BotLogic implements LongPollingSingleThreadUpdateConsumer{
         String text = update.getMessage().getText();
 
         if ("/start".equals(text)) {
+            isStarted = true;
             SendMessage message = SendMessage.builder()
                     .chatId(chatId)
-                    .text("Привіт! Надішли свій email для прив'язки акаунту:")
+                    .text("Вітаємо, для прив'язки вашого акаунту надішліть пошту яку зареєстрували")
                     .build();
             telegramClient.execute(message);
 
         } else if (text != null && text.contains("@")) {
             boolean linked = userService.linkChatId(chatId, text.trim());
 
+            if (linked) {
+                emailIsConnected = true;
+            }
+
             SendMessage message = SendMessage.builder()
                     .chatId(chatId)
-                    .text(linked ? "✅ Акаунт прив'язано! Тепер ти будеш отримувати сповіщення про дедлайни."
+                    .text(linked ? "✅ Акаунт прив'язано! Тепер ви будете отримувати сповіщення про дедлайни."
                             : "❌ Email не знайдено. Спробуй ще раз:")
+                    .build();
+            telegramClient.execute(message);
+
+        } else if ("/tasks".equals(text) && emailIsConnected) {
+            String taskList = showTaskList.showTasks();
+            notificationSender.sendNotification(chatId, taskList);
+
+        } else {
+            SendMessage message = SendMessage.builder()
+                    .chatId(chatId)
+                    .text("Завдань немає або вашу пошту не прив'язано да акаунту!")
                     .build();
             telegramClient.execute(message);
         }

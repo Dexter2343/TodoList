@@ -16,25 +16,40 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NotificationService {
 
+    private boolean deadlineIsend = false;
+
     private final TaskRepository taskRepository;
     private final NotificationSender notificationSender;
+    private final BotLogic logic;
 
 
-    @Scheduled(cron = "0 0 9 * * *")
-//      @Scheduled(fixedRate = 60000)
-    public void deadlines(){
-        LocalDateTime now = LocalDateTime.now().plusDays(1);
+    //    @Scheduled(cron = "0 0 9 * * *")
+    @Scheduled(fixedRate = 60000)
+    public void deadlines() {
         List<Task> tasks = taskRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
 
-        for(Task t: tasks){
-            if(t.getDeadline() == null) continue;
+        for (Task t : tasks) {
+            LocalDateTime deadline = t.getDeadline();
+            if (t.getDeadline() == null) continue;
             Long chatId = t.getTodo().getUser().getChatId();
-            String text = String.format(
-                    "Твоє завдання \"%s\" завершиться %s!",
-                    t.getTitle(),
-                    t.getDeadline().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
-            );
-            notificationSender.sendNotification(chatId, text);
+            if (logic.isStarted()) {
+                if (deadline.isAfter(now) && logic.isEmailIsConnected())   {
+                    String notify = String.format(
+                            "Твоє завдання \"%s\" завершиться %s!",
+                            t.getTitle(),
+                            t.getDeadline().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))
+                    );
+                    notificationSender.sendNotification(chatId, notify);
+                } else if (!deadline.isAfter(now) && logic.isEmailIsConnected()) {
+                    String text = String.format(
+                            "Твоє завдання \"%s\" завершило свій термін %s!",
+                            t.getTitle(),
+                            t.getDeadline().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))
+                    );
+                    notificationSender.sendNotification(chatId, text);
+                }
+            }
         }
     }
 }
